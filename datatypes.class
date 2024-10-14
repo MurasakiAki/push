@@ -1,6 +1,9 @@
 declare -A variables
 declare -A var_types
 
+true=1
+false=0
+
 datatype() {
     local name="$1"
     
@@ -96,11 +99,24 @@ bool() {
         if [ "$value" == "1" ] || [ "$value" == "0" ]; then
             variables["$name"]=$value
             var_types["$name"]="bool"
+
+            eval "$name() {
+                if [ \"\$1\" == '=' ] && [[ \"\$2\" == \"1\" ] || [ \"\$2\" == \"0\" ]]; then
+                    variables[\"$name\"]=\$2
+                elif [ -z \"\$1\" ]; then
+                    echo \${variables[\"$name\"]}
+                else
+                    echo \"SyntaxError: '$name' is missing a '='\"
+                    exit 1
+                fi
+            }"
+
         else
             echo "TypeError: bool '$name' cannot be assigned value of '$value'"
             exit 1
         fi
     else
         echo "SyntaxError: '$name' is missing a '='"
+        exit 1
     fi
 }
