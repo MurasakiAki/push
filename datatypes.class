@@ -1,0 +1,106 @@
+declare -A variables
+declare -A var_types
+
+datatype() {
+    local name="$1"
+    
+    if [ ${var_types["$name"]+_} ]; then
+        echo "${var_types["$name"]}"
+    else
+        echo "Error: Undefined variable name: $name."
+        exit 1
+    fi
+}
+
+string() {
+    local name="$1"
+    local value=$3
+    
+    if [ "$2" == "=" ]; then
+        variables["$name"]=$value
+        var_types["$name"]="string"
+        
+        eval "$name() {
+            if [ \"\$1\" == '=' ] && [ -n \"\$2\" ]; then
+                variables[\"$name\"]=\"\$2\"
+            elif [ -z \"\$1\" ]; then
+                echo \${variables[\"$name\"]}
+            else
+                echo \"SyntaxError: '$name' is missing a '='\"
+                exit 1
+            fi
+        }"
+        
+        eval "$name.abc() {
+            echo \$(echo \"\${variables[\"$name\"]}\" | grep -o . | sort | tr -d '\\n')
+        }"
+    else
+        echo "SyntaxError: '$name' is missing a '='"
+        exit 1
+    fi
+}
+
+int() {
+    local name="$1"
+    local value=$3
+    
+    if [ "$2" == "=" ]; then
+        if [[ "$value" =~ ^-?[0-9]+$ ]]; then
+            variables["$name"]=$value
+            var_types["$name"]="int"
+            
+            eval "$name() {
+                if [ \"\$1\" == '=' ] && [[ \"\$2\" =~ ^-?[0-9]+$ ]]; then
+                    variables[\"$name\"]=\$2
+                elif [ -z \"\$1\" ]; then
+                    echo \${variables[\"$name\"]}
+                else
+                    echo \"SyntaxError: '$name' is missing a '='\"
+                    exit 1
+                fi
+            }"
+            
+            eval "$name.bin() {
+                echo \"obase=2; \${variables[\"$name\"]}\" | bc
+            }"
+            
+            eval "$name.hex() {
+                echo \"obase=16; \${variables[\"$name\"]}\" | bc
+            }"
+            
+            eval "$name.is_eq_to() {
+                local to_com=\$1
+
+                if [ \"\${variables[\"$name\"]}\" == \"\$to_com\" ]; then
+                    echo 1
+                else
+                    echo 0
+                fi
+            }"
+
+        else
+            echo "TypeError: int '$name' cannot be assigned value of '$value'"
+            exit 1
+        fi
+    else
+        echo "SyntaxError: '$name' is missing a '='"
+        exit 1
+    fi
+}
+
+bool() {
+    local name="$1"
+    local value=$3
+    
+    if [ "$2" == "=" ]; then
+        if [ "$value" == "1" ] || [ "$value" == "0" ]; then
+            variables["$name"]=$value
+            var_types["$name"]="bool"
+        else
+            echo "TypeError: bool '$name' cannot be assigned value of '$value'"
+            exit 1
+        fi
+    else
+        echo "SyntaxError: '$name' is missing a '='"
+    fi
+}
