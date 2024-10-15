@@ -2,5 +2,10 @@
 
 source "datatypes.class"
 
-bool b = 1
-b
+int a = 5
+
+a
+
+dismiss a
+
+a

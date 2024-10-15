@@ -94,15 +94,20 @@ int() {
 bool() {
     local name="$1"
     local value=$3
-    
+
     if [ "$2" == "=" ]; then
         if [ "$value" == "1" ] || [ "$value" == "0" ]; then
             variables["$name"]=$value
             var_types["$name"]="bool"
 
             eval "$name() {
-                if [ \"\$1\" == '=' ] && [[ \"\$2\" == \"1\" ] || [ \"\$2\" == \"0\" ]]; then
-                    variables[\"$name\"]=\$2
+                if [ \"\$1\" == '=' ]; then
+                    if [ \"\$2\" == \"1\" ] || [ \"\$2\" == \"0\" ]; then
+                        variables[\"$name\"]=\$2
+                    else
+                        echo \"TypeError: bool '$name' cannot be assigned value of '\$2'\"
+                        exit 1
+                    fi
                 elif [ -z \"\$1\" ]; then
                     echo \${variables[\"$name\"]}
                 else
@@ -119,4 +124,15 @@ bool() {
         echo "SyntaxError: '$name' is missing a '='"
         exit 1
     fi
+}
+
+dismiss() {
+    if [ -n $# ]; then
+        unset variables
+        unset var_types
+    else
+        unset variables[$1]
+        unset var_types[$1]
+    fi
+
 }
