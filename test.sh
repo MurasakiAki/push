@@ -1,14 +1,16 @@
 #!/bin/bash
-
 source "datatypes.class"
 
-int a = 10
-int b = 20
+int a = 23
+string text = "Hello"
+bool lean = $false
+
 a
-a.bin
-a.hex
+text
+lean
 
-dismiss a
-dismiss b
+dismiss
 
-b
+a
+text
+lean
