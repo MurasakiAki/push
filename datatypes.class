@@ -173,3 +173,7 @@ dismiss() {
         fi
     fi
 }
+
+class() {
+    
+}

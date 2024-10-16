@@ -9,6 +9,6 @@ a.bin
 a.hex
 
 dismiss a
+dismiss b
 
-a
 b
