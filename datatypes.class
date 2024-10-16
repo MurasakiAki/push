@@ -2,6 +2,10 @@ declare -A variables
 declare -A var_types
 declare -A dec_fun
 
+declare -A class_vars
+declare -A class_methods
+declare -A class_types
+
 true=1
 false=0
 
@@ -145,6 +149,7 @@ dismiss() {
 
         unset variables
         unset var_types
+        unset dec_fun
 
     else
         if [[ -v variables["$1"] ]]; then
@@ -175,5 +180,44 @@ dismiss() {
 }
 
 class() {
+    local class_name="$1"
     
+    eval "$class_name() {
+        local instance_name=\"\$1\"
+        
+        class_types[\"\$instance_name\"]=\"$class_name\"
+        
+        # Create properties
+        eval \"\$instance_name.property() {
+            local prop_name=\$1
+            if [ \"\$2\" == '=' ] && [ -n \"\$3\" ]; then
+                class_vars[\"\$instance_name.\$prop_name\"]=\$3
+            else
+                echo \${class_vars[\"\$instance_name.\$prop_name\"]}
+            fi
+        }\"
+        
+        # Bind methods to the instance
+        for method_name in \${class_methods[\"\$class_name\"]}; do
+            eval \"\$instance_name.\$method_name() {
+                \$class_name.\$method_name \"\$instance_name\" \"\$@\"
+            }\"
+        done
+    }"
+}
+
+# Define a method for a class
+method() {
+    local class_name="$1"
+    local method_name="$2"
+    shift 2
+    local method_body="$@"
+    
+    class_methods["$class_name"]+="$method_name "
+    
+    eval "$class_name.$method_name() {
+        local instance_name=\$1
+        shift
+        $method_body
+    }"
 }
