@@ -127,12 +127,34 @@ bool() {
 }
 
 dismiss() {
-    if [ -n $# ]; then
+    if [ $# -eq 0 ]; then
         unset variables
         unset var_types
+        #make cycle for all the subfunctions
     else
-        unset variables[$1]
-        unset var_types[$1]
-    fi
+        if [[ -v variables["$1"] ]]; then
+            local name="$1"
+            case "${var_types["$name"]}" in
+                int)
+                    unset -f "$name.bin"
+                    unset -f "$name.hex"
+                    unset -f "$name.is_eq_to"
+                    ;;
+                string)
+                    unset -f "$name.abc"
+                    ;;
+                *)
+                    echo "Invalid data type in dismissing function '$name'"
+                    exit 1
+                    ;;
+            esac
 
+            unset -f "$name"
+            unset variables["$1"]
+            unset var_types["$1"]
+        else
+            echo "MemoryError: Variable '$1' does not exist or has already been dismissed"
+            exit 1
+        fi
+    fi
 }
