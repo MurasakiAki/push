@@ -3,11 +3,12 @@
 source "datatypes.class"
 
 int a = 10
+int b = 20
 a
 a.bin
 a.hex
 
-dismiss b
+dismiss a
 
-
-
+a
+b

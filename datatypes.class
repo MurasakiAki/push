@@ -1,5 +1,6 @@
 declare -A variables
 declare -A var_types
+declare -A dec_fun
 
 true=1
 false=0
@@ -37,6 +38,9 @@ string() {
         eval "$name.abc() {
             echo \$(echo \"\${variables[\"$name\"]}\" | grep -o . | sort | tr -d '\\n')
         }"
+
+        dec_fun+="$name"
+        dec_fun+="$name.abc"
     else
         echo "SyntaxError: '$name' is missing a '='"
         exit 1
@@ -81,6 +85,11 @@ int() {
                 fi
             }"
 
+            dec_fun+="$name"
+            dec_fun+="$name.bin"
+            dec_fun+="$name.hex"
+            dec_fun+="$name.is_eq_to"
+
         else
             echo "TypeError: int '$name' cannot be assigned value of '$value'"
             exit 1
@@ -115,6 +124,8 @@ bool() {
                     exit 1
                 fi
             }"
+            
+            dec_fun+="$name"
 
         else
             echo "TypeError: bool '$name' cannot be assigned value of '$value'"
@@ -128,9 +139,13 @@ bool() {
 
 dismiss() {
     if [ $# -eq 0 ]; then
+        for func in "${dec_fun[@]}"; do
+            unset -f "$func"
+        done
+
         unset variables
         unset var_types
-        #make cycle for all the subfunctions
+
     else
         if [[ -v variables["$1"] ]]; then
             local name="$1"
@@ -150,8 +165,8 @@ dismiss() {
             esac
 
             unset -f "$name"
-            unset variables["$1"]
-            unset var_types["$1"]
+            unset variables["$name"]
+            unset var_types["$name"]
         else
             echo "MemoryError: Variable '$1' does not exist or has already been dismissed"
             exit 1
