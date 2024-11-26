@@ -1,0 +1,19 @@
+string mystr = "hello"
+echo "Original: $(mystr)"
+echo "Sorted: $(mystr.sort_chars)"
+
+int mynum = 42
+echo "Original: $(mynum)"
+echo "Binary: $(mynum.to_bin)"
+echo "Hexadecimal: $(mynum.to_hex)"
+echo "Equals 42? $(mynum.is_eq_to 42)"
+
+bool myflag = 1
+echo "Initial flag: $(myflag)"
+myflag.toggle
+echo "Toggled flag: $(myflag)"
+
+dismiss mystr
+dismiss mynum
+dismiss myflag
+

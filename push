@@ -1,0 +1,156 @@
+#!/bin/bash
+
+declare -A variables
+declare -A var_types
+
+true=1
+false=0
+
+# Function to define a new variable and associated methods
+define_variable() {
+    local name="$1"
+    local type="$2"
+    local value="$3"
+    
+    variables["$name"]="$value"
+    var_types["$name"]="$type"
+
+    eval "$name() {
+        if [ \"\$1\" == '=' ]; then
+            local new_value=\"\$2\"
+            validate_value \"$name\" \"$type\" \"\$new_value\" || exit 1
+            variables[\"$name\"]=\$new_value
+        elif [ -z \"\$1\" ]; then
+            echo \${variables[\"$name\"]}
+        else
+            echo \"SyntaxError: '$name' is missing a '=' or invalid usage\"
+            exit 1
+        fi
+    }"
+    
+    # Settinf data type functions
+    case "$type" in
+        string)
+            eval "$name.sort_chars() {
+                echo \$(echo \"\${variables[\"$name\"]}\" | grep -o . | sort | tr -d '\\n')
+            }"
+            ;;
+        int)
+            eval "$name.to_bin() {
+                echo \"obase=2; \${variables[\"$name\"]}\" | bc
+            }"
+            eval "$name.to_hex() {
+                echo \"obase=16; \${variables[\"$name\"]}\" | bc
+            }"
+            eval "$name.is_eq_to() {
+                local compare=\$1
+                [[ \${variables[\"$name\"]} -eq \$compare ]] && echo 1 || echo 0
+            }"
+            ;;
+        bool)
+            eval "$name.toggle() {
+                variables[\"$name\"]=\$((1 - \${variables[\"$name\"]}))
+            }"
+            ;;
+    esac
+}
+
+validate_value() {
+    local name="$1"
+    local type="$2"
+    local value="$3"
+    case "$type" in
+        string) return 0 ;;
+        int)
+            [[ "$value" =~ ^-?[0-9]+$ ]] || {
+                echo "TypeError: int '$name' cannot be assigned value '$value'"
+                return 1
+            }
+            ;;
+        bool)
+            [[ "$value" == "1" || "$value" == "0" ]] || {
+                echo "TypeError: bool '$name' must be 1 (true) or 0 (false)"
+                return 1
+            }
+            ;;
+        *)
+            echo "Error: Unknown type '$type' for variable '$name'"
+            return 1
+            ;;
+    esac
+}
+
+string() {
+    [[ "$2" == "=" ]] || { echo "SyntaxError: string '$1' is missing '='"; exit 1; }
+    define_variable "$1" "string" "$3"
+}
+
+int() {
+    [[ "$2" == "=" ]] || { echo "SyntaxError: int '$1' is missing '='"; exit 1; }
+    validate_value "$1" "int" "$3" || exit 1
+    define_variable "$1" "int" "$3"
+}
+
+bool() {
+    [[ "$2" == "=" ]] || { echo "SyntaxError: bool '$1' is missing '='"; exit 1; }
+    validate_value "$1" "bool" "$3" || exit 1
+    define_variable "$1" "bool" "$3"
+}
+
+dismiss() {
+    if [ $# -eq 0 ]; then
+        for name in "${!variables[@]}"; do
+            dismiss "$name"
+        done
+    else
+        local name="$1"
+        if [[ -v variables["$name"] ]]; then
+            unset variables["$name"]
+            unset var_types["$name"]
+            unset -f "$name"
+            case "${var_types["$name"]}" in
+                int)
+                    unset -f "$name.to_bin"
+                    unset -f "$name.to_hex"
+                    unset -f "$name.is_eq_to"
+                    ;;
+                string)
+                    unset -f "$name.sort_chars"
+                    ;;
+                bool)
+                    unset -f "$name.toggle"
+                    ;;
+            esac
+        else
+            echo "MemoryError: Variable '$name' does not exist or has already been dismissed"
+            exit 1
+        fi
+    fi
+}
+
+# Main execution logic to parse and execute commands from a file
+if [ -n "$1" ]; then
+    script_file="$1"
+
+    # Check if the file has a .push extension
+    if [[ "$script_file" != *.push ]]; then
+        echo "FileError: Script file must have a .push extension."
+        exit 1
+    fi
+
+    # Check if the file exists
+    if [ -f "$script_file" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            eval "$line" || {
+                echo "RuntimeError: Failed to execute line: $line"
+                exit 1
+            }
+        done < "$script_file"
+    else
+        echo "FileError: Script file '$script_file' not found."
+        exit 1
+    fi
+else
+    echo "Usage: $0 <script_file.push>"
+    exit 1
+fi
